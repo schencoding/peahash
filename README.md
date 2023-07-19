@@ -11,23 +11,28 @@ Code for SIGMOD'23 Pea Hash Paper
 ## What's included
 - src/ is the main source files of pea hash.
 - util/ is some util functions.
-- test/test_pmem is an examplary test file.
-- CMakeLists.txt is a template which must be changed.
+- test/ is test files.
 - Compile.sh shows the usage of the test_pmem.
 
+## Prerequisite
+
+1. Hardware: Intel Optane Memory
+
+2. install cmake,  g++
+
+3. Since [Dash](https://github.com/baotonglu/dash) use its Customized PMDK, we install PMDK in our CMakeLists. Installing PMDK is a little difficult. Please refer to the Dependencies of https://github.com/pmem/pmdk if incurring error.
+
+
+
 ## Building
-CMakeLists, test/test_pmem.cpp, compile.sh
+CMakeLists, test/test_pmem*.cpp, compile.sh
 These are important test files.
-Please refer the three important files to compile your own example.
+
+PS. If your server has no access to github.com, please refer to pea_pmem/unique/CMakeLists.txt.offline for help.
 
 
-## Dependencies
-No dependency is needed in Pea Hash.
-
-If you see some strange dependencies in the example test file and CMakeLists, these are obsolete dependencies, please delete them.
-
-If you want to use the test_pmem, 
-
-set(libs_to_link gflags)
-
-in CMakeLists.
+# Availability and Reproducibility for SIGMOD'23
+- pea_dram/unique: Fig.6
+- pea_pmem/unique: Fig.4, Fig.5
+- pea_pmem/duplicate: Fig.8, Fig.9, Fig.10
+- pea_pmem/different_strategy: Fig.7
