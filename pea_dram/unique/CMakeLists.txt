@@ -16,28 +16,13 @@ if (${CMAKE_BUILD_TYPE} STREQUAL "Release")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -DNDEBUG -Ofast")
 endif ()
 
-option(USE_PMEM "enable persistent memory support" ON)
-
 set(libs_to_link
-        pthread gflags    
+        pthread gflags      
         )
 
-if (USE_PMEM MATCHES "ON")
-  message(STATUS "add definition PMEM")
-  add_definitions(-DPMEM)
-endif ()
+add_executable(test_pmem test/test_pmem.cpp)
+target_include_directories(test_pmem PRIVATE util)
+target_link_libraries(test_pmem PRIVATE ${libs_to_link})
 
-if (USE_PMEM MATCHES "ON")
-  add_executable(test_pmem test/test_pmem.cpp)
-  # add_executable(example test/example.cpp)
-  # add_executable(gen_data test/gen_data.cpp)
-  # add_executable(resample test/resample.cpp)
-  target_include_directories(test_pmem PRIVATE util)
-  target_link_libraries(test_pmem PRIVATE ${libs_to_link})
-  # target_link_libraries(example PRIVATE ${libs_to_link})
-  add_dependencies(test_pmem PMDK)
-  # add_dependencies(example PMDK)
-else ()
-endif ()
 
 add_definitions(-DAVX512F)

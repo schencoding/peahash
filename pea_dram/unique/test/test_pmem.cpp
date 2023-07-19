@@ -36,7 +36,7 @@
 std::string pool_name = "/mnt/mypmem1/liuzhuoxuan/";
 // std::string pool_name = "/home/liuzhuoxuan/workspace/peahash-test/workload/";
 DEFINE_string(index, "clht",
-              "the index to evaluate:pea/dash-16/dash-512/cceh/level/clht/swiss");
+              "the index to evaluate:pea/dash-16/dash-512/cceh/level/clht");
 DEFINE_string(k, "fixed", "the type of stored keys: fixed/variable");
 DEFINE_string(distribution, "uniform",
               "The distribution of the workload: uniform/skew");

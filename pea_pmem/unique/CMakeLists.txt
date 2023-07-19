@@ -19,8 +19,10 @@ endif ()
 ##################### PMDK ####################
 set(PMDK_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/pmdk")
 ExternalProject_Add(PMDK
-        GIT_REPOSITORY https://github.com/HaoPatrick/pmdk.git
-        GIT_TAG addr-patch
+        # GIT_REPOSITORY https://github.com/HaoPatrick/pmdk.git
+        GIT_REPOSITORY https://github.com/pmem/pmdk.git
+        # GIT_TAG addr-patch
+        GIT_TAG 1.7.1
 	      BUILD_IN_SOURCE 1
         BUILD_COMMAND $(MAKE) EXTRA_CFLAGS=-Wno-error
         PREFIX ${PMDK_PREFIX}
