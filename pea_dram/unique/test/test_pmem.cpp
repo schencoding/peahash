@@ -1062,8 +1062,8 @@ void Run() {
     RecoveryBench<T>(rarray, index, thread_num, operation_num, "Pos_search");
 
   } else { /*do the benchmark for all single operations*/
-    // std::cout << "Comprehensive Benchmark" << std::endl;
-    // std::cout << "insertion start" << std::endl;
+    std::cout << "Comprehensive Benchmark" << std::endl;
+    std::cout << "insertion start" << std::endl;
     for (int i = 0; i < thread_num; ++i) {
       rarray[i].workload = not_used_insert_workload;
     }
@@ -1144,7 +1144,7 @@ int main(int argc, char *argv[]) {
   index_type = FLAGS_index;
   distribution = FLAGS_distribution;
   load_type = FLAGS_loadType;
-  // std::cout << "Distribution = " << distribution << std::endl;
+  std::cout << "Distribution = " << distribution << std::endl;
   std::string fixed("fixed");
   operation = FLAGS_op;
   open_epoch = FLAGS_e;

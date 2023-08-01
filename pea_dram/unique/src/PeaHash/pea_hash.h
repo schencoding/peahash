@@ -758,11 +758,11 @@ DOUBLE_REHASH:
 
 FINAL:
 
-#ifdef AVX512F
   for (j = 0; j < 4; j++) {
     Bucket<T> *from_seg = seg_ptrs[j];
     auto to_seg =
         reinterpret_cast<Bucket<T> *>(SM->chunk_addr(ret_val[j].chunk_id.load(std::memory_order_acquire)));
+#ifdef AVX512F
     for (i = 0; i < kNumBucket; ++i) {
       _line<T> *from_line = from_seg[i].line;
       _line<T> *to_line = to_seg[i].line;
@@ -771,8 +771,10 @@ FINAL:
         _mm512_stream_si512((__m512i *)(to_line + k), new_line0);
       }
     }
-  }
+#else
+    memcpy(to_seg, from_seg, kNumBucket * 256);
 #endif
+  }
 
   for (j = 0; j < 4; ++j) {
     free(seg_ptrs[j]);

@@ -17,8 +17,9 @@ Code for SIGMOD'23 Pea Hash Paper
 ## Prerequisite
 
 1. Hardware: 
-- With Intel Optane Memory, you can reproduce all the results.
-- With AVX512, you can use some optimizations in Pea Hash.
+- With *Intel Optane Memory*, you can reproduce all the results.
+- With *AVX512*, you can use some optimizations in Pea Hash.
+- Otherwise, only pea_dram can be deployed.
 
 2. install cmake,  g++
 
