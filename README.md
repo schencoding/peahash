@@ -20,7 +20,12 @@ Code for SIGMOD'23 Pea Hash Paper
 
 2. install cmake,  g++
 
-3. Installing PMDK is a little difficult. Please refer to the Dependencies of https://github.com/pmem/pmdk if incurring error.
+3. install gflags
+```
+sudo apt install libgflags-dev
+```
+
+4. Installing PMDK is a little difficult. Please refer to the Dependencies of https://github.com/pmem/pmdk if incurring error.
 
 ## Building
 CMakeLists, test/test_pmem*.cpp, compile.sh

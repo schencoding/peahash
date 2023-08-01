@@ -12,10 +12,7 @@
 #include <cstdint>
 #include <iostream>
 
-#ifdef PMEM
-#include "libpmem.h"
-#include "libpmemobj.h"
-#endif
+#define IS_POWER_OF_TWO(x) (x && (x & (x - 1)) == 0)
 
 static constexpr const uint32_t kCacheLineSize = 64;
 
@@ -93,4 +90,13 @@ int msleep(uint64_t msec) {
   } while (res && errno == EINTR);
 
   return res;
+}
+
+inline uint64_t Murmur3_64(uint64_t h) {
+  h ^= h >> 33;
+  h *= 0xff51afd7ed558ccd;
+  h ^= h >> 33;
+  h *= 0xc4ceb9fe1a85ec53;
+  h ^= h >> 33;
+  return h;
 }

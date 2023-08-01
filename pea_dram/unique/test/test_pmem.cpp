@@ -24,14 +24,11 @@
 #include "../src/Dash-512/ex_finger.h"
 #include "../src/Level/level_base.h"
 #include "../src/PeaHash/pea_hash.h"
-#include "../src/PeaHash/peas_hash.h"
 #include "../src/PeaHash/space_manager.h"
 #include "../src/CLHT/clht_lb_res.h"
-#include "../src/Swiss/swisstable.h"
 #include "../util/System.hpp"
 #include "../util/key_generator.hpp"
 #include "../util/uniform.hpp"
-#include "libpmemobj.h"
 
 std::string pool_name = "/mnt/mypmem1/liuzhuoxuan/";
 // std::string pool_name = "/home/liuzhuoxuan/workspace/peahash-test/workload/";
@@ -109,35 +106,16 @@ Hash<T> *InitializeIndex(int seg_num) {
   gettimeofday(&tv1, NULL);
   if (index_type == "dash-16") {
     std::cout << "Dash-16" << std::endl;
-    std::string index_pool_name = pool_name + "pmem_dash-16.data";
-    if (FileExists(index_pool_name.c_str())) file_exist = true;
-    Allocator::Initialize(index_pool_name.c_str(), pool_size);
 #ifdef PREALLOC
     extendible_16::TlsTablePool<Key_t>::Initialize();
 #endif
-    eh = reinterpret_cast<Hash<T> *>(
-        Allocator::GetRoot(sizeof(extendible_16::Finger_EH<T>)));
-    if (!file_exist) {
-      new (eh) extendible_16::Finger_EH<T>(seg_num, Allocator::Get()->pm_pool_);
-    } else {
-      new (eh) extendible_16::Finger_EH<T>();
-    }
-
+    eh = new extendible_16::Finger_EH<T>(seg_num);
   } else if (index_type == "dash-512") {
     std::cout << "Dash-512" << std::endl;
-    std::string index_pool_name = pool_name + "pmem_dash-512.data";
-    if (FileExists(index_pool_name.c_str())) file_exist = true;
-    Allocator::Initialize(index_pool_name.c_str(), pool_size);
 #ifdef PREALLOC
     extendible_512::TlsTablePool<Key_t>::Initialize();
 #endif
-    eh = reinterpret_cast<Hash<T> *>(
-        Allocator::GetRoot(sizeof(extendible_512::Finger_EH<T>)));
-    if (!file_exist) {
-      new (eh) extendible_512::Finger_EH<T>(8, Allocator::Get()->pm_pool_);
-    } else {
-      new (eh) extendible_512::Finger_EH<T>();
-    }
+    eh = new extendible_512::Finger_EH<T>(8);
   } else if (index_type == "cceh") {
     std::cout << "CCEH" << std::endl;
     eh = new cceh::CCEH<T>(seg_num);
@@ -157,9 +135,6 @@ Hash<T> *InitializeIndex(int seg_num) {
   } else if (index_type == "clht") {
     std::cout << "CLHT" << std::endl;
     eh = new clht_lb::CLHT<T>(81920);
-  } else if (index_type == "swiss") {
-    std::cout << "Swiss" << std::endl;
-    eh = new swiss::SwissTable<T>();
   }
   if (operation == "recovery") {
     gettimeofday(&tv3, NULL);  // test end
@@ -185,10 +160,6 @@ void generate_8B(void *memory_region, uint64_t generate_num, bool persist,
   for (uint64_t i = 0; i < generate_num; ++i) {
     array[i] = key_generator->next_uint64();
   }
-
-  if (persist) {
-    Allocator::Persist(memory_region, generate_num * sizeof(uint64_t));
-  }
 }
 
 void skew_generate_8B(void *memory_region, uint64_t generate_num, bool persist,
@@ -197,10 +168,6 @@ void skew_generate_8B(void *memory_region, uint64_t generate_num, bool persist,
 
   for (uint64_t i = 0; i < generate_num; ++i) {
     array[i] = key_generator->next_uint64_skew(4999);
-  }
-
-  if (persist) {
-    Allocator::Persist(memory_region, generate_num * sizeof(uint64_t));
   }
 }
 
@@ -224,11 +191,6 @@ void generate_16B(void *memory_region, uint64_t generate_num, int length,
       _key[j] = random_num;
     }
     memcpy(var_key->key, _key, length);
-  }
-
-  if (persist) {
-    Allocator::Persist(memory_region,
-                       generate_num * (sizeof(string_key) + length));
   }
 }
 
@@ -997,18 +959,7 @@ void Run() {
   }
 
   void *insert_workload;
-  if (key_type != "fixed") {
-    PMEMoid ptr;
-    Allocator::Allocate(&ptr, kCacheLineSize,
-                        (sizeof(string_key) + var_length) * generate_num, NULL,
-                        NULL);
-    insert_workload = pmemobj_direct(ptr);
-    std::cout << "allocate finish for pm" << std::endl;
-    memcpy(insert_workload, workload,
-           (sizeof(string_key) + var_length) * generate_num);
-  } else {
-    insert_workload = workload;
-  }
+  insert_workload = workload;
   // std::cout << "Finish Generate workload" << std::endl;
 
   // std::cout << "load num = " << load_num << std::endl;

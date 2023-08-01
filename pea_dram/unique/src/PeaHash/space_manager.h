@@ -10,7 +10,7 @@
 #pragma once
 
 #include <pair.h>
-
+#include "x86intrin.h"
 #include <cstdlib>
 
 std::atomic<uint8_t> gl = -1;

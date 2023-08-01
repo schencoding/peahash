@@ -27,7 +27,7 @@
 #include "../../util/hash.h"
 #include "../../util/pair.h"
 #include "../Hash.h"
-#include "../allocator.h"
+#include "../util/utils.h"
 
 #ifdef PMEM
 #include <libpmemobj.h>
@@ -566,8 +566,8 @@ struct Directory {
     depth_count = 0;
   }
 
+  // todo(liuzhuoxuan)
   static void New(PMEMoid *dir, size_t capacity, size_t version) {
-#ifdef PMEM
     auto callback = [](PMEMobjpool *pool, void *ptr, void *arg) {
       auto value_ptr = reinterpret_cast<std::tuple<size_t, size_t> *>(arg);
       auto dir_ptr = reinterpret_cast<Directory *>(ptr);
@@ -585,10 +585,6 @@ struct Directory {
                         callback, reinterpret_cast<void *>(&callback_args));
 #ifdef AU
     segment_num += (sizeof(Directory<T>) + sizeof(table_p) * capacity + 15)/16;
-#endif
-#else
-    Allocator::Allocate((void **)dir, kCacheLineSize, sizeof(Directory<T>));
-    new (*dir) Directory(capacity, version, tables);
 #endif
   }
 };
@@ -1368,7 +1364,7 @@ template <class T>
 class Finger_EH : public Hash<T> {
  public:
   Finger_EH(void);
-  Finger_EH(size_t, PMEMobjpool *_pool);
+  Finger_EH(size_t);
   ~Finger_EH(void);
   inline int Insert(T key, Value_t value);
 #ifdef AU
@@ -1488,7 +1484,6 @@ class Finger_EH : public Hash<T> {
       crash_version; /*when the crash version equals to 0Xff => set the crash
                         version as 0, set the version of all entries as 1*/
   bool clean;
-  PMEMobjpool *pool_addr;
   /* directory allocation will write to here first,
    * in oder to perform safe directory allocation
    * */
@@ -1496,8 +1491,7 @@ class Finger_EH : public Hash<T> {
 };
 
 template <class T>
-Finger_EH<T>::Finger_EH(size_t initCap, PMEMobjpool *_pool) {
-  pool_addr = _pool;
+Finger_EH<T>::Finger_EH(size_t initCap) {
   Directory<T>::New(&back_dir, initCap, 0);
   dir = reinterpret_cast<Directory<T> *>(pmemobj_direct(back_dir));
   back_dir = OID_NULL;
@@ -1554,22 +1548,10 @@ void Finger_EH<T>::Directory_Doubling(int x, Table<T> *new_b, Table<T> *old_b) {
                      sizeof(Directory<T>) + sizeof(uint64_t) * 2 * capacity);
   auto reserve_item = Allocator::ReserveItem();
   auto old_dir = dir;
-  TX_BEGIN(pool_addr) {
-          pmemobj_tx_add_range_direct(reserve_item, sizeof(*reserve_item));
-          pmemobj_tx_add_range_direct(&dir, sizeof(dir));
-          pmemobj_tx_add_range_direct(&back_dir, sizeof(back_dir));
-          // pmemobj_tx_add_range_direct(&old_b->local_depth,
-          //                             sizeof(old_b->local_depth));
-          old_b->local_depth += 1;
-          Allocator::Free(reserve_item, dir);
-          /*Swap the memory addr between new directory and old directory*/
-          dir = new_sa;
-          back_dir = OID_NULL;
-        }
-          TX_ONABORT {
-          std::cout << "TXN fails during doubling directory" << std::endl;
-        }
-  TX_END
+
+  // Critical Path
+  old_b->local_depth += 1;
+  dir = new_sa;
 }
 
 template <class T>
