@@ -40,8 +40,11 @@ cd pea_dram/unique
 ./compile.sh
 ```
 
-
-PS. If your server has no access to github.com, please refer to pea_pmem/unique/CMakeLists.txt.offline for help.
+If your server has no AVX512, please delete this line in CMakeLists.txt
+```
+add_definitions(-DAVX512F)
+```
+If your server has no access to github.com, please refer to pea_pmem/unique/CMakeLists.txt.offline for help.
 
 
 # Getting started on DRAM
@@ -49,7 +52,6 @@ PS. If your server has no access to github.com, please refer to pea_pmem/unique/
 cd pea_dram/unique
 ./run.sh
 ```
-
 
 # Availability and Reproducibility for SIGMOD'23
 - pea_dram/unique: Fig.6

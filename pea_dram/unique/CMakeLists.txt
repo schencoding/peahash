@@ -25,4 +25,4 @@ target_include_directories(test_pmem PRIVATE util)
 target_link_libraries(test_pmem PRIVATE ${libs_to_link})
 
 
-# add_definitions(-DAVX512F)
+add_definitions(-DAVX512F)
