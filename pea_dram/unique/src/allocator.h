@@ -6,11 +6,9 @@
 #include "../util/utils.h"
 #include "x86intrin.h"
 #include <cstring>
-#include "epoch_manager.h"
 
 struct Allocator {
  public:
-  EpochManager epoch_manager_{};
   static Allocator* instance_;
   static Allocator* Get() { return instance_; }
 
@@ -25,10 +23,6 @@ struct Allocator {
              strerror (ret));
     }
     memset(*ptr, 0, size);
-  }
-
-  static EpochGuard AquireEpochGuard() {
-    return EpochGuard{&instance_->epoch_manager_};
   }
 };
 

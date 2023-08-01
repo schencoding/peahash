@@ -38,10 +38,10 @@ DEFINE_string(k, "fixed", "the type of stored keys: fixed/variable");
 DEFINE_string(distribution, "uniform",
               "The distribution of the workload: uniform/skew");
 DEFINE_uint64(i, 256, "the initial number of segments in pea/extendible hashing");
-DEFINE_uint64(t, 16, "the number of concurrent threads");
-DEFINE_uint64(n, 10000000, "the number of pre-insertion load");
+DEFINE_uint64(t, 1, "the number of concurrent threads");
+DEFINE_uint64(n, 1000000, "the number of pre-insertion load");
 DEFINE_uint64(loadType, 0, "type of pre-load integers: random (0) - range (1)");
-DEFINE_uint64(p, 190000000,
+DEFINE_uint64(p, 19000000,
               "the number of operations(insert/search/deletion) to execute");
 DEFINE_string(
     op, "full",
@@ -243,254 +243,6 @@ void concurr_insert_without_epoch(struct range *_range, Hash<T> *index) {
   end_notify(_range);
 }
 
-template <class T>
-void concurr_insert(struct range *_range, Hash<T> *index) {
-  set_affinity(_range->index);
-  int begin = _range->begin;
-  int end = _range->end;
-  char *workload = reinterpret_cast<char *>(_range->workload);
-  T key;
-  uint64_t repeat_key = 0;
-
-  if constexpr (!std::is_pointer_v<T>) {
-    T *key_array = reinterpret_cast<T *>(workload);
-    uint64_t round = (end - begin) / EPOCH_DURATION;
-    uint64_t i = 0;
-    spin_wait();
-
-    while (i < round) {
-      auto epoch_guard = Allocator::AquireEpochGuard();
-      uint64_t _end = begin + (i + 1) * EPOCH_DURATION;
-      for (uint64_t j = begin + i * EPOCH_DURATION; j < _end; ++j) {
-        index->Insert(key_array[j], DEFAULT, true);
-      }
-      ++i;
-    }
-
-    {
-      auto epoch_guard = Allocator::AquireEpochGuard();
-      for (i = begin + EPOCH_DURATION * round; i < end; ++i) {
-        index->Insert(key_array[i], DEFAULT, true);
-      }
-    }
-  } else {
-    T var_key;
-    uint64_t round = (end - begin) / EPOCH_DURATION;
-    uint64_t i = 0;
-    uint64_t string_key_size = sizeof(string_key) + _range->length;
-
-    spin_wait();
-    while (i < round) {
-      auto epoch_guard = Allocator::AquireEpochGuard();
-      uint64_t _end = begin + (i + 1) * EPOCH_DURATION;
-      for (uint64_t j = begin + i * EPOCH_DURATION; j < _end; ++j) {
-        var_key = reinterpret_cast<T>(workload + string_key_size * j);
-        index->Insert(var_key, DEFAULT, true);
-      }
-      ++i;
-    }
-
-    {
-      auto epoch_guard = Allocator::AquireEpochGuard();
-      for (i = begin + EPOCH_DURATION * round; i < end; ++i) {
-        var_key = reinterpret_cast<T>(workload + string_key_size * i);
-        index->Insert(var_key, DEFAULT, true);
-      }
-    }
-  }
-
-  end_notify(_range);
-}
-
-/*In this search version, the thread also needs to do the record its */
-template <class T>
-void concurr_search_sample(struct range *_range, Hash<T> *index) {
-  uint64_t curr_index = _range->index;
-  set_affinity(curr_index);
-  operation_record[curr_index].number = 0;
-  uint64_t begin = _range->begin;
-  uint64_t end = _range->end;
-  char *workload = reinterpret_cast<char *>(_range->workload);
-  T key;
-  uint64_t not_found = 0;
-
-  if constexpr (!std::is_pointer_v<T>) {
-    T *key_array = reinterpret_cast<T *>(workload);
-    uint64_t round = (end - begin) / EPOCH_DURATION;
-    uint64_t i = 0;
-    spin_wait();
-
-    while (i < round) {
-      auto epoch_guard = Allocator::AquireEpochGuard();
-      uint64_t _end = begin + (i + 1) * EPOCH_DURATION;
-      for (uint64_t j = begin + i * EPOCH_DURATION; j < _end; ++j) {
-        index->Get(key_array[j], true);
-        operation_record[curr_index].number++;
-      }
-      ++i;
-    }
-
-    {
-      auto epoch_guard = Allocator::AquireEpochGuard();
-      for (i = begin + EPOCH_DURATION * round; i < end; ++i) {
-        index->Get(key_array[i], true);
-        operation_record[curr_index].number++;
-      }
-    }
-  } else {
-    T var_key;
-    uint64_t round = (end - begin) / EPOCH_DURATION;
-    uint64_t i = 0;
-    uint64_t string_key_size = sizeof(string_key) + _range->length;
-
-    spin_wait();
-    while (i < round) {
-      auto epoch_guard = Allocator::AquireEpochGuard();
-      uint64_t _end = begin + (i + 1) * EPOCH_DURATION;
-      for (uint64_t j = begin + i * EPOCH_DURATION; j < _end; ++j) {
-        var_key = reinterpret_cast<T>(workload + string_key_size * j);
-        index->Get(var_key, true);
-        operation_record[curr_index].number++;
-      }
-      ++i;
-    }
-
-    {
-      auto epoch_guard = Allocator::AquireEpochGuard();
-      for (i = begin + EPOCH_DURATION * round; i < end; ++i) {
-        var_key = reinterpret_cast<T>(workload + string_key_size * i);
-        index->Get(var_key, true);
-        operation_record[curr_index].number++;
-      }
-    }
-  }
-  // std::cout << "not_found = " << not_found << std::endl;
-  end_sub();
-}
-
-template <class T>
-void concurr_insert_sample(struct range *_range, Hash<T> *index) {
-  uint64_t curr_index = _range->index;
-  set_affinity(curr_index);
-  operation_record[curr_index].number = 0;
-  uint64_t begin = _range->begin;
-  uint64_t end = _range->end;
-  char *workload = reinterpret_cast<char *>(_range->workload);
-  T key;
-  uint64_t not_found = 0;
-
-  if constexpr (!std::is_pointer_v<T>) {
-    T *key_array = reinterpret_cast<T *>(workload);
-    uint64_t round = (end - begin) / EPOCH_DURATION;
-    uint64_t i = 0;
-    spin_wait();
-
-    while (i < round) {
-      auto epoch_guard = Allocator::AquireEpochGuard();
-      uint64_t _end = begin + (i + 1) * EPOCH_DURATION;
-      for (uint64_t j = begin + i * EPOCH_DURATION; j < _end; ++j) {
-        index->Insert(key_array[j], DEFAULT, true);
-        operation_record[curr_index].number++;
-      }
-      ++i;
-    }
-
-    {
-      auto epoch_guard = Allocator::AquireEpochGuard();
-      for (i = begin + EPOCH_DURATION * round; i < end; ++i) {
-        index->Insert(key_array[i], DEFAULT, true);
-        operation_record[curr_index].number++;
-      }
-    }
-  } else {
-    T var_key;
-    uint64_t round = (end - begin) / EPOCH_DURATION;
-    uint64_t i = 0;
-    uint64_t string_key_size = sizeof(string_key) + _range->length;
-
-    spin_wait();
-    while (i < round) {
-      auto epoch_guard = Allocator::AquireEpochGuard();
-      uint64_t _end = begin + (i + 1) * EPOCH_DURATION;
-      for (uint64_t j = begin + i * EPOCH_DURATION; j < _end; ++j) {
-        var_key = reinterpret_cast<T>(workload + string_key_size * j);
-        index->Insert(var_key, DEFAULT, true);
-        operation_record[curr_index].number++;
-      }
-      ++i;
-    }
-
-    {
-      auto epoch_guard = Allocator::AquireEpochGuard();
-      for (i = begin + EPOCH_DURATION * round; i < end; ++i) {
-        var_key = reinterpret_cast<T>(workload + string_key_size * i);
-        index->Insert(var_key, DEFAULT, true);
-        operation_record[curr_index].number++;
-      }
-    }
-  }
-  // std::cout << "not_found = " << not_found << std::endl;
-  end_sub();
-}
-
-template <class T>
-void concurr_search(struct range *_range, Hash<T> *index) {
-  set_affinity(_range->index);
-  uint64_t begin = _range->begin;
-  uint64_t end = _range->end;
-  char *workload = reinterpret_cast<char *>(_range->workload);
-  T key;
-  uint64_t not_found = 0;
-
-  if constexpr (!std::is_pointer_v<T>) {
-    T *key_array = reinterpret_cast<T *>(workload);
-    uint64_t round = (end - begin) / EPOCH_DURATION;
-    uint64_t i = 0;
-    spin_wait();
-
-    while (i < round) {
-      auto epoch_guard = Allocator::AquireEpochGuard();
-      uint64_t _end = begin + (i + 1) * EPOCH_DURATION;
-      for (uint64_t j = begin + i * EPOCH_DURATION; j < _end; ++j) {
-        if (index->Get(key_array[j], true) == NONE) not_found++;
-      }
-      ++i;
-    }
-
-    {
-      auto epoch_guard = Allocator::AquireEpochGuard();
-      for (i = begin + EPOCH_DURATION * round; i < end; ++i) {
-        if (index->Get(key_array[i], true) == NONE) not_found++;
-      }
-    }
-  } else {
-    T var_key;
-    uint64_t round = (end - begin) / EPOCH_DURATION;
-    uint64_t i = 0;
-    uint64_t string_key_size = sizeof(string_key) + _range->length;
-
-    spin_wait();
-    while (i < round) {
-      auto epoch_guard = Allocator::AquireEpochGuard();
-      uint64_t _end = begin + (i + 1) * EPOCH_DURATION;
-      for (uint64_t j = begin + i * EPOCH_DURATION; j < _end; ++j) {
-        var_key = reinterpret_cast<T>(workload + string_key_size * j);
-        if (index->Get(var_key, true) == NONE) not_found++;
-      }
-      ++i;
-    }
-
-    {
-      auto epoch_guard = Allocator::AquireEpochGuard();
-      for (i = begin + EPOCH_DURATION * round; i < end; ++i) {
-        var_key = reinterpret_cast<T>(workload + string_key_size * i);
-        if (index->Get(var_key, true) == NONE) not_found++;
-      }
-    }
-  }
-  // std::cout << "not_found = " << not_found << std::endl;
-  end_notify(_range);
-}
 
 template <class T>
 void concurr_search_without_epoch(struct range *_range, Hash<T> *index) {
@@ -556,66 +308,6 @@ void concurr_delete_without_epoch(struct range *_range, Hash<T> *index) {
 }
 
 template <class T>
-void concurr_delete(struct range *_range, Hash<T> *index) {
-  set_affinity(_range->index);
-  int begin = _range->begin;
-  int end = _range->end;
-  char *workload = reinterpret_cast<char *>(_range->workload);
-  T key;
-  uint64_t not_found = 0;
-
-  if constexpr (!std::is_pointer_v<T>) {
-    T *key_array = reinterpret_cast<T *>(workload);
-    uint64_t round = (end - begin) / EPOCH_DURATION;
-    uint64_t i = 0;
-    spin_wait();
-
-    while (i < round) {
-      auto epoch_guard = Allocator::AquireEpochGuard();
-      uint64_t _end = begin + (i + 1) * EPOCH_DURATION;
-      for (uint64_t j = begin + i * EPOCH_DURATION; j < _end; ++j) {
-        if (!index->Delete(key_array[j], true)) not_found++;
-      }
-      ++i;
-    }
-
-    {
-      auto epoch_guard = Allocator::AquireEpochGuard();
-      for (i = begin + EPOCH_DURATION * round; i < end; ++i) {
-        if (!index->Delete(key_array[i], true)) not_found++;
-      }
-    }
-  } else {
-    T var_key;
-    uint64_t round = (end - begin) / EPOCH_DURATION;
-    uint64_t i = 0;
-    uint64_t string_key_size = sizeof(string_key) + _range->length;
-
-    spin_wait();
-    while (i < round) {
-      auto epoch_guard = Allocator::AquireEpochGuard();
-      uint64_t _end = begin + (i + 1) * EPOCH_DURATION;
-      for (uint64_t j = begin + i * EPOCH_DURATION; j < _end; ++j) {
-        var_key = reinterpret_cast<T>(workload + string_key_size * j);
-        if (!index->Delete(var_key, true)) not_found++;
-      }
-      ++i;
-    }
-
-    {
-      auto epoch_guard = Allocator::AquireEpochGuard();
-      for (i = begin + EPOCH_DURATION * round; i < end; ++i) {
-        var_key = reinterpret_cast<T>(workload + string_key_size * i);
-        if (!index->Delete(var_key, true)) not_found++;
-      }
-    }
-  }
-
-  // std::cout << "not_found = " << not_found << std::endl;
-  end_notify(_range);
-}
-
-template <class T>
 void mixed_without_epoch(struct range *_range, Hash<T> *index) {
   set_affinity(_range->index);
   uint64_t begin = _range->begin;
@@ -654,79 +346,6 @@ void mixed_without_epoch(struct range *_range, Hash<T> *index) {
     }
   }
   // std::cout << "not_found = " << not_found << std::endl;
-  /*the last thread notify the main thread to wake up*/
-  end_notify(_range);
-}
-
-template <class T>
-void mixed(struct range *_range, Hash<T> *index) {
-  set_affinity(_range->index);
-  uint64_t begin = _range->begin;
-  uint64_t end = _range->end;
-  char *workload = reinterpret_cast<char *>(_range->workload);
-  T *key_array = reinterpret_cast<T *>(_range->workload);
-  T key;
-  int string_key_size = sizeof(string_key) + _range->length;
-
-  UniformRandom rng(_range->random_num);
-  uint32_t random;
-  uint64_t not_found = 0;
-
-  uint32_t insert_sign = (uint32_t)(insert_ratio * 100);
-  uint32_t read_sign = (uint32_t)(read_ratio * 100) + insert_sign;
-  uint32_t delete_sign = (uint32_t)(delete_ratio * 100) + read_sign;
-
-  uint64_t round = (end - begin) / EPOCH_DURATION;
-  uint64_t i = 0;
-  spin_wait();
-
-  while (i < round) {
-    auto epoch_guard = Allocator::AquireEpochGuard();
-    uint64_t _end = begin + (i + 1) * EPOCH_DURATION;
-    for (uint64_t j = begin + i * EPOCH_DURATION; j < _end; ++j) {
-      if constexpr (std::is_pointer_v<T>) { /* variable length*/
-        key = reinterpret_cast<T>(workload + string_key_size * j);
-      } else {
-        key = key_array[j];
-      }
-
-      random = rng.next_uint32() % 100;
-      if (random < insert_sign) { /*insert*/
-        index->Insert(key, DEFAULT, true);
-      } else if (random < read_sign) { /*get*/
-        if (index->Get(key, true) == NONE) {
-          not_found++;
-        }
-      } else { /*delete*/
-        index->Delete(key, true);
-      }
-    }
-    ++i;
-  }
-
-  {
-    auto epoch_guard = Allocator::AquireEpochGuard();
-    for (i = begin + EPOCH_DURATION * round; i < end; ++i) {
-      if constexpr (std::is_pointer_v<T>) { /* variable length*/
-        key = reinterpret_cast<T>(workload + string_key_size * i);
-      } else {
-        key = key_array[i];
-      }
-
-      random = rng.next_uint32() % 100;
-      if (random < insert_sign) { /*insert*/
-        index->Insert(key, DEFAULT, true);
-      } else if (random < read_sign) { /*get*/
-        if (index->Get(key, true) == NONE) {
-          not_found++;
-        }
-      } else { /*delete*/
-        index->Delete(key, true);
-      }
-    }
-  }
-
-  std::cout << "not_found = " << not_found << std::endl;
   /*the last thread notify the main thread to wake up*/
   end_notify(_range);
 }
@@ -784,65 +403,6 @@ void GeneralBench(range *rarray, Hash<T> *index, int thread_num,
       operation_num / duration, operation_num / shortest, operation_num / longest);
   //  });
   // std::cout << profile_name << " End" << std::endl;
-}
-
-template <class T>
-void RecoveryBench(range *rarray, Hash<T> *index, int thread_num,
-                   uint64_t operation_num, std::string profile_name) {
-  std::thread *thread_array[1024];
-  profile_name = profile_name + std::to_string(thread_num);
-  double duration;
-  finished = false;
-  bar_a = 1;
-  bar_b = thread_num;
-  bar_c = thread_num;
-  uint64_t *last_record = new uint64_t[thread_num];
-  uint64_t *curr_record = new uint64_t[thread_num];
-  memset(last_record, 0, sizeof(uint64_t) * thread_num);
-  memset(curr_record, 0, sizeof(uint64_t) * thread_num);
-  double seconds = (double)msec / 1000;
-
-  std::cout << profile_name << " Begin" << std::endl;
-  for (uint64_t i = 0; i < thread_num; ++i) {
-    thread_array[i] =
-        new std::thread(concurr_search_sample<T>, &rarray[i], index);
-  }
-
-  while (LOAD(&bar_b) != 0)
-    ;  // Spin
-  gettimeofday(&tv1, NULL);
-  STORE(&bar_a, 0);  // start test
-  /* Start to do the sampling and record in the file*/
-  while (bar_c != 0) {
-    msleep(msec);
-    for (int i = 0; i < thread_num; ++i) {
-      curr_record[i] = operation_record[i].number;
-    }
-    uint64_t operation_num = 0;
-    for (int i = 0; i < thread_num; ++i) {
-      operation_num += (curr_record[i] - last_record[i]);
-    }
-    double throughput = (double)operation_num / (double)1000000 / seconds;
-    std::cout << throughput << std::endl; /*Mops/s*/
-    memcpy(last_record, curr_record, sizeof(uint64_t) * thread_num);
-  }
-  gettimeofday(&tv2, NULL);  // test end
-
-  for (int i = 0; i < thread_num; ++i) {
-    thread_array[i]->join();
-    delete thread_array[i];
-  }
-  duration = (double)(tv2.tv_usec - tv1.tv_usec) / 1000000 +
-             (double)(tv2.tv_sec - tv1.tv_sec);
-  printf(
-      "%d threads, Time = %f s, Total throughput = %f "
-      "ops/s\n",
-      thread_num,
-      (double)(tv2.tv_usec - tv1.tv_usec) / 1000000 +
-      (double)(tv2.tv_sec - tv1.tv_sec),
-      operation_num / duration);
-  //});
-  std::cout << profile_name << " End" << std::endl;
 }
 
 void *GenerateWorkload(uint64_t generate_num, int length) {
@@ -989,138 +549,41 @@ void Run() {
   rarray[thread_num - 1].end = operation_num;
 
   /* Benchmark Phase */
-  if (operation == "insert") {
-    std::cout << "Insert-only Benchmark" << std::endl;
-    for (int i = 0; i < thread_num; ++i) {
-      rarray[i].workload = not_used_insert_workload;
-    }
-    if (open_epoch == true) {
-      GeneralBench<T>(rarray, index, thread_num, operation_num, "Insert",
-                      &concurr_insert);
-    } else {
-      GeneralBench<T>(rarray, index, thread_num, operation_num, "Insert",
-                      &concurr_insert_without_epoch);
-    }
-  } else if (operation == "pos" || operation == "skew-search") {
-    // if (!load_num) {
-    //   std::cout << "Please first specify the # pre_load keys!" << std::endl;
-    //   return;
-    // }
-    for (int i = 0; i < thread_num; ++i) {
-      rarray[i].workload = workload;
-    }
-    if (open_epoch == true) {
-      GeneralBench<T>(rarray, index, thread_num, operation_num, "Search",
-                      &concurr_search);
-    } else {
-      GeneralBench<T>(rarray, index, thread_num, operation_num, "Search",
-                      &concurr_search_without_epoch);
-    }
-  } else if (operation == "neg") {
-    // if (!load_num) {
-    //   std::cout << "Please first specify the # pre_load keys!" << std::endl;
-    //   return;
-    // }
-    if (open_epoch == true) {
-      GeneralBench<T>(rarray, index, thread_num, operation_num, "Neg_search",
-                      &concurr_search);
-    } else {
-      GeneralBench<T>(rarray, index, thread_num, operation_num, "Neg_search",
-                      &concurr_search_without_epoch);
-    }
-  } else if (operation == "delete") {
-    // if (!load_num) {
-    //   std::cout << "Please first specify the # pre_load keys!" << std::endl;
-    //   return;
-    // }
-    for (int i = 0; i < thread_num; ++i) {
-      rarray[i].workload = workload;
-    }
-    if (open_epoch == true) {
-      GeneralBench<T>(rarray, index, thread_num, operation_num, "Delete",
-                      &concurr_delete);
-    } else {
-      GeneralBench<T>(rarray, index, thread_num, operation_num, "Delete",
-                      &concurr_delete_without_epoch);
-    }
-  } else if (operation == "mixed") {
-    for (int i = 0; i < thread_num; ++i) {
-      rarray[i].workload = not_used_insert_workload;
-    }
-    if (open_epoch == true) {
-      GeneralBench<T>(rarray, index, thread_num, operation_num, "Mixed",
-                      &mixed);
-    } else {
-      GeneralBench<T>(rarray, index, thread_num, operation_num, "Mixed",
-                      &mixed_without_epoch);
-    }
-  } else if (operation == "recovery") {
-    std::cout << "Start the Recovery Benchmark" << std::endl;
-    for (int i = 0; i < thread_num; ++i) {
-      rarray[i].workload = not_used_workload;
-    }
-    RecoveryBench<T>(rarray, index, thread_num, operation_num, "Pos_search");
-
-  } else { /*do the benchmark for all single operations*/
-    std::cout << "Comprehensive Benchmark" << std::endl;
-    std::cout << "insertion start" << std::endl;
-    for (int i = 0; i < thread_num; ++i) {
-      rarray[i].workload = not_used_insert_workload;
-    }
-
-    if (operation != "skew-all") {
-      if (open_epoch == true) {
-        GeneralBench<T>(rarray, index, thread_num, operation_num, "Insert",
-                        &concurr_insert);
-      } else {
-        GeneralBench<T>(rarray, index, thread_num, operation_num, "Insert",
-                        &concurr_insert_without_epoch);
-      }
-    }
-
-    // index->getNumber();
-    shuffle((uint64_t *)not_used_workload, operation_num);
-    for (int i = 0; i < thread_num; ++i) {
-      rarray[i].workload = not_used_workload;
-    }
-
-    if (open_epoch == true) {
-      GeneralBench<T>(rarray, index, thread_num, operation_num, "Pos_search",
-                      &concurr_search);
-    } else {
-      GeneralBench<T>(rarray, index, thread_num, operation_num, "Pos_search",
-                      &concurr_search_without_epoch);
-    }
-
-    for (int i = 0; i < thread_num; ++i) {
-      rarray[i].begin = operation_num + i * chunk_size;
-      rarray[i].end = operation_num + (i + 1) * chunk_size;
-    }
-    rarray[thread_num - 1].end = 2 * operation_num;
-    if (open_epoch == true) {
-      GeneralBench<T>(rarray, index, thread_num, operation_num, "Neg_search",
-                      &concurr_search);
-    } else {
-      GeneralBench<T>(rarray, index, thread_num, operation_num, "Neg_search",
-                      &concurr_search_without_epoch);
-    }
-
-    for (int i = 0; i < thread_num; ++i) {
-      rarray[i].begin = i * chunk_size;
-      rarray[i].end = (i + 1) * chunk_size;
-    }
-    rarray[thread_num - 1].end = operation_num;
-    shuffle((uint64_t *)not_used_workload, operation_num);
-
-    if (open_epoch == true) {
-      GeneralBench<T>(rarray, index, thread_num, operation_num, "Delete",
-                      &concurr_delete);
-    } else {
-      GeneralBench<T>(rarray, index, thread_num, operation_num, "Delete",
-                      &concurr_delete_without_epoch);
-    }
-    // index->getNumber();
+  std::cout << "Comprehensive Benchmark" << std::endl;
+  std::cout << "insertion start" << std::endl;
+  for (int i = 0; i < thread_num; ++i) {
+    rarray[i].workload = not_used_insert_workload;
   }
+  if (operation != "skew-all") {
+    GeneralBench<T>(rarray, index, thread_num, operation_num, "Insert",
+                      &concurr_insert_without_epoch);
+  }
+  // index->getNumber();
+  shuffle((uint64_t *)not_used_workload, operation_num);
+  for (int i = 0; i < thread_num; ++i) {
+    rarray[i].workload = not_used_workload;
+  }
+  GeneralBench<T>(rarray, index, thread_num, operation_num, "Pos_search",
+                    &concurr_search_without_epoch);
+  for (int i = 0; i < thread_num; ++i) {
+    rarray[i].begin = operation_num + i * chunk_size;
+    rarray[i].end = operation_num + (i + 1) * chunk_size;
+  }
+  rarray[thread_num - 1].end = 2 * operation_num;
+  GeneralBench<T>(rarray, index, thread_num, operation_num, "Neg_search",
+                    &concurr_search_without_epoch);
+  
+  for (int i = 0; i < thread_num; ++i) {
+    rarray[i].begin = i * chunk_size;
+    rarray[i].end = (i + 1) * chunk_size;
+  }
+  rarray[thread_num - 1].end = operation_num;
+  shuffle((uint64_t *)not_used_workload, operation_num);
+  GeneralBench<T>(rarray, index, thread_num, operation_num, "Delete",
+                    &concurr_delete_without_epoch);
+  
+  // index->getNumber();
+  
 
   /*TODO Free the workload memory*/
 }

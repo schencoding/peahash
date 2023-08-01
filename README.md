@@ -34,6 +34,13 @@ sudo apt install libgflags-dev
 CMakeLists, test/test_pmem*.cpp, compile.sh
 These are important test files.
 
+Take pea_dram as example.
+```
+cd pea_dram/unique
+./compile.sh
+```
+
+
 PS. If your server has no access to github.com, please refer to pea_pmem/unique/CMakeLists.txt.offline for help.
 
 
@@ -49,8 +56,8 @@ cd pea_dram/unique
 - pea_pmem/unique: Fig.4, Fig.5
 - pea_pmem/duplicate: Fig.8, Fig.9, Fig.10
 
-# Notes for Reproducibility
-1. Multithread test: If your affinity setting is different from mine (eg. core 0-3 in socket 0, core 4-7 in socket 1), please change the function in test_pmem.
+# Notes for Multithread Reproducibility
+If your affinity setting is different from mine (eg. core 0-3 in socket 0, core 4-7 in socket 1), please change the function in test_pmem.
 ```
 void set_affinity(uint32_t idx) {
   cpu_set_t my_set;

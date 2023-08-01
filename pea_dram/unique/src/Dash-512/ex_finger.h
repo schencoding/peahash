@@ -1601,10 +1601,6 @@ void Finger_EH<T>::Recovery() {
 
 template <class T>
 int Finger_EH<T>::Insert(T key, Value_t value, bool is_in_epoch) {
-  if (!is_in_epoch) {
-    auto epoch_guard = Allocator::AquireEpochGuard();
-    return Insert(key, value);
-  }
   return Insert(key, value);
 }
 template <class T>
@@ -1715,7 +1711,6 @@ int Finger_EH<T>::Insert0(T key, Value_t value) {
 template <class T>
 Value_t Finger_EH<T>::Get(T key, bool is_in_epoch) {
   if (!is_in_epoch) {
-    auto epoch_guard = Allocator::AquireEpochGuard();
     return Get(key);
   }
   uint64_t key_hash;
@@ -1974,10 +1969,6 @@ Value_t Finger_EH<T>::Get(T key) {
 
 template <class T>
 bool Finger_EH<T>::Delete(T key, bool is_in_epoch) {
-  if (!is_in_epoch) {
-    auto epoch_guard = Allocator::AquireEpochGuard();
-    return Delete(key);
-  }
   return Delete(key);
 }
 
