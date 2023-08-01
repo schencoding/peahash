@@ -37,6 +37,29 @@ These are important test files.
 PS. If your server has no access to github.com, please refer to pea_pmem/unique/CMakeLists.txt.offline for help.
 
 
+# Getting started on DRAM
+```
+cd pea_dram/unique
+./run.sh
+```
+
+
+# Availability and Reproducibility for SIGMOD'23
+- pea_dram/unique: Fig.6
+- pea_pmem/unique: Fig.4, Fig.5
+- pea_pmem/duplicate: Fig.8, Fig.9, Fig.10
+
+# Notes for Reproducibility
+1. Multithread test: If your affinity setting is different from mine (eg. core 0-3 in socket 0, core 4-7 in socket 1), please change the function in test_pmem.
+```
+void set_affinity(uint32_t idx) {
+  cpu_set_t my_set;
+  CPU_ZERO(&my_set);
+  CPU_SET(2 * idx + 1, &my_set);
+  sched_setaffinity(0, sizeof(cpu_set_t), &my_set);
+}
+```
+
 ## Running benchmark
 
 As stated in our paper, we run the tests in a single NUMA node with 16 physical CPU cores. We pin threads to physical cores compactly assuming thread ID == core ID (e.g., for a dual-socket system, we assume cores 0,2,4,...,30 are located in socket 0, and cores 1,3,5,...,31 in socket 1).  
@@ -61,22 +84,3 @@ Usage:
 -vl         the length of the variable length key (default: 16)
 ```
 Check out also the `run.sh` script for example benchmarks and easy testing of the hash tables. 
-
-
-# Availability and Reproducibility for SIGMOD'23
-- pea_dram/unique: Fig.6
-- pea_pmem/unique: Fig.4, Fig.5
-- pea_pmem/duplicate: Fig.8, Fig.9, Fig.10
-- pea_pmem/different_strategy: Fig.7
-
-
-# Notes for Reproducibility
-1. Multithread test: If your affinity setting is different from mine (eg. core 0-3 in socket 0, core 4-7 in socket 1), please change the function in test_pmem.
-```
-void set_affinity(uint32_t idx) {
-  cpu_set_t my_set;
-  CPU_ZERO(&my_set);
-  CPU_SET(2 * idx + 1, &my_set);
-  sched_setaffinity(0, sizeof(cpu_set_t), &my_set);
-}
-```
