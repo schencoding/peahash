@@ -767,6 +767,7 @@ DOUBLE_REHASH:
 
 FINAL:
 
+// todo (liuzhuoxuan)
 #ifdef AVX512F
   for (j = 0; j < 4; j++) {
     Bucket<T> *from_seg = seg_ptrs[j];

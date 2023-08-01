@@ -567,29 +567,11 @@ struct Directory {
     depth_count = 0;
   }
 
-  static void New(PMEMoid *dir, size_t capacity, size_t version) {
-#ifdef PMEM
-    auto callback = [](PMEMobjpool *pool, void *ptr, void *arg) {
-      auto value_ptr = reinterpret_cast<std::tuple<size_t, size_t> *>(arg);
-      auto dir_ptr = reinterpret_cast<Directory *>(ptr);
-      dir_ptr->version = std::get<1>(*value_ptr);
-      dir_ptr->global_depth =
-          static_cast<size_t>(log2(std::get<0>(*value_ptr)));
-      size_t cap = std::get<0>(*value_ptr);
-      pmemobj_persist(pool, dir_ptr,
-                      sizeof(Directory<T>) + sizeof(uint64_t) * cap);
-      return 0;
-    };
-    std::tuple callback_args = {capacity, version};
-    Allocator::Allocate(dir, kCacheLineSize,
-                        sizeof(Directory<T>) + sizeof(table_p) * capacity,
-                        callback, reinterpret_cast<void *>(&callback_args));
+  static void New(void **dir, size_t capacity, size_t version) {
+    Allocator::ZAllocate(dir, kCacheLineSize, sizeof(Directory<T>) + sizeof(table_p) * capacity);
+    new (*dir) Directory(capacity, version);
 #ifdef AU
     segment_num += (sizeof(Directory<T>) + sizeof(table_p) * capacity + 15)/16;
-#endif
-#else
-    Allocator::Allocate((void **)dir, kCacheLineSize, sizeof(Directory<T>));
-    new (*dir) Directory(capacity, version, tables);
 #endif
   }
 };
@@ -1492,14 +1474,14 @@ class Finger_EH : public Hash<T> {
   /* directory allocation will write to here first,
    * in oder to perform safe directory allocation
    * */
-  PMEMoid back_dir;
+  void* back_dir;
 };
 
 template <class T>
 Finger_EH<T>::Finger_EH(size_t initCap) {
   Directory<T>::New(&back_dir, initCap, 0);
-  dir = reinterpret_cast<Directory<T> *>(pmemobj_direct(back_dir));
-  back_dir = OID_NULL;
+  dir = reinterpret_cast<Directory<T> *>(back_dir);
+  back_dir = nullptr;
   lock = 0;
   crash_version = 0;
   clean = false;
@@ -1538,7 +1520,7 @@ void Finger_EH<T>::Directory_Doubling(int x, Table<T> *new_b, Table<T> *old_b) {
   auto capacity = pow(2, global_depth);
   Directory<T>::New(&back_dir, 2 * capacity, dir->version + 1);
   Directory<T> *new_sa =
-      reinterpret_cast<Directory<T> *>(pmemobj_direct(back_dir));
+      reinterpret_cast<Directory<T> *>(back_dir);
   auto dd = new_sa->_;
 
   for (unsigned i = 0; i < capacity; ++i) {
@@ -1549,9 +1531,6 @@ void Finger_EH<T>::Directory_Doubling(int x, Table<T> *new_b, Table<T> *old_b) {
       reinterpret_cast<uint64_t>(new_b) | crash_version);
   new_sa->depth_count = 2;
 
-  Allocator::Persist(new_sa,
-                     sizeof(Directory<T>) + sizeof(uint64_t) * 2 * capacity);
-  auto reserve_item = Allocator::ReserveItem();
   auto old_dir = dir;
   
   // Critical Path
