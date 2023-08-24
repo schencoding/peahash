@@ -1,6 +1,6 @@
-# PeaHash: Performant Extendible Adaptive Hashing Index
+# Pea Hash: A Performant Extendible Adaptive Hashing Index
 
-Code for SIGMOD'23 Pea Hash Paper
+Code for SIGMOD'23 [Pea Hash Paper](https://dl.acm.org/doi/10.1145/3588962)
 
 
 ## Directory
