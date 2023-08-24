@@ -39,7 +39,7 @@ if (USE_PMEM MATCHES "ON")
   target_link_libraries(test_pmem PRIVATE ${libs_to_link})
 else ()
   add_executable(gen_data test/gen_data_graph.cpp)
-  # add_executable(gen_sample test/resample.cpp)
+  add_executable(gen_sample test/gen_undirected_graph.cpp)
 endif ()
 
 add_definitions(-DAVX512F)

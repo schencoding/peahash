@@ -56,7 +56,7 @@ cd pea_dram/unique
 # Availability and Reproducibility for SIGMOD'23
 - pea_dram/unique: Fig.6
 - pea_pmem/unique: Fig.4, Fig.5
-- pea_pmem/duplicate: Fig.8, Fig.9, Fig.10
+- pea_pmem/duplicate: Fig.8, Fig.9, Fig.10 (See pea_pmem/README.md)
 
 # Notes for Multithread Reproducibility
 If your affinity setting is different from mine (eg. core 0-3 in socket 0, core 4-7 in socket 1), please change the function in test_pmem.

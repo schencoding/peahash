@@ -13,24 +13,3 @@ rm /mnt/mypmem1/liuzhuoxuan/pmem_dash-ex.data
 # compile
 cmake -DCMAKE_BUILD_TYPE=Release -DUSE_PMEM=ON -S . -B build
 cd build && make -j
-
-# execute
-a=0
-while(($a<5))
-do
-    a=`expr $a + 1`
-    for h in 0 1 2 3 4      # skew rate
-    do
-        for k in 0 1  #index
-        do
-            echo "No.$a ${index_type[$k]} test begin, skew factor ${skew[$h]}"
-            # run
-            timeout 1h numactl --cpunodebind=1 --membind=1 ./test_pmem \
-            -index ${index_type[$k]} \
-            -skew ${skew[$h]} \
-            >> ../log/skew_uniq_delete${a}.csv
-            # clean data
-            rm /mnt/mypmem1/liuzhuoxuan/pmem_${index_type[$k]}.data
-        done
-    done
-done    
