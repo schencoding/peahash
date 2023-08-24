@@ -12,7 +12,7 @@ Code for SIGMOD'23 [Pea Hash Paper](https://dl.acm.org/doi/10.1145/3588962)
 - src/ is the main source files of pea hash.
 - util/ is some util functions.
 - test/ is test files.
-- Compile.sh shows the usage of the test_pmem.
+- compile.sh and run.sh shows the usage of the test_pmem.
 
 ## Prerequisite
 
