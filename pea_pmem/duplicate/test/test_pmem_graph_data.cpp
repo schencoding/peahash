@@ -13,7 +13,7 @@
 #include <thread>
 
 // #include "../src/Dash/ex_finger.h"
-// #include "../src/Dash/ex_fingers.h"
+#include "../src/Dash/ex_fingers.h"
 #include "../src/PeaHash/peas_hash.h"
 #include "../src/PeaHash/space_manager.h"
 #include "../util/System.hpp"
