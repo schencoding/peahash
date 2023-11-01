@@ -2,10 +2,10 @@ if (POLICY CMP0048)
   cmake_policy(SET CMP0048 NEW)
 endif ()
 
-project(dash)
-cmake_minimum_required(VERSION 3.10)
-#include(FetchContent)
-#include(ExternalProject)
+project(pehash)
+cmake_minimum_required(VERSION 3.11)
+include(FetchContent)
+include(ExternalProject)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-long-long -fPIC -march=native")
@@ -17,10 +17,40 @@ if (${CMAKE_BUILD_TYPE} STREQUAL "Release")
 endif ()
 
 ##################### PMDK ####################
-set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
-find_package(PMDK REQUIRED)
+set(PMDK_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/pmdk")
+ExternalProject_Add(PMDK
+        # GIT_REPOSITORY https://github.com/HaoPatrick/pmdk.git
+        GIT_REPOSITORY https://github.com/pmem/pmdk.git
+        # GIT_TAG addr-patch
+        GIT_TAG 1.7.1
+	      BUILD_IN_SOURCE 1
+        BUILD_COMMAND $(MAKE) EXTRA_CFLAGS=-Wno-error
+        PREFIX ${PMDK_PREFIX}
+        CONFIGURE_COMMAND ""
+        INSTALL_COMMAND ""
+        LOG_DOWNLOAD ON
+        LOG_CONFIGURE ON
+        LOG_BUILD ON
+        )
 
-include_directories(build/_deps/epoch_reclaimer-src)
+include_directories(${PMDK_PREFIX}/src/PMDK/src/include)
+if (${CMAKE_BUILD_TYPE} STREQUAL "Debug")
+  link_directories(${PMDK_PREFIX}/src/PMDK/src/debug)
+else ()
+  link_directories(${PMDK_PREFIX}/src/PMDK/src/nondebug)
+endif ()
+
+
+##################### Epoch Reclaim ####################
+FetchContent_Declare(
+        epoch_reclaimer
+        GIT_REPOSITORY https://github.com/XiangpengHao/epoch-reclaimer.git
+        GIT_TAG master
+)
+if (NOT epoch_reclaimer_POPULATED)
+  FetchContent_Populate(epoch_reclaimer)
+  include_directories(${epoch_reclaimer_SOURCE_DIR})
+endif ()
 
 option(USE_PMEM "enable persistent memory support" ON)
 
@@ -30,13 +60,14 @@ set(libs_to_link
 if (USE_PMEM MATCHES "ON")
   message(STATUS "persistent memory support enabled, going to build with PMDK")
   add_definitions(-DPMEM)
-  list(APPEND libs_to_link ${PMDK_LIBRARIES})
+  list(APPEND libs_to_link pmemobj pmem)
 endif ()
 
 if (USE_PMEM MATCHES "ON")
   add_executable(test_pmem test/test_pmem.cpp)
   target_include_directories(test_pmem PRIVATE util)
   target_link_libraries(test_pmem PRIVATE ${libs_to_link})
+  add_dependencies(test_pmem PMDK)
 else ()
   add_executable(gen_data test/gen_data_graph.cpp)
   add_executable(gen_sample test/gen_undirected_graph.cpp)

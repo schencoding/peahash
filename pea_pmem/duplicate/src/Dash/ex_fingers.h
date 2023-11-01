@@ -36,6 +36,8 @@
 #include <libpmemobj.h>
 #endif
 
+uint64_t merge_time;
+
 #ifdef ANA
 int temp = 0;
 uint64_t val1cnt = 0;

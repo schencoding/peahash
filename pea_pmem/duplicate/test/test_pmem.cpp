@@ -12,7 +12,7 @@
 #include <mutex>
 #include <thread>
 
-
+#include "../src/Dash/ex_fingers.h"
 #include "../src/PeaHash/peas_hash.h"
 #include "../src/PeaHash/space_manager.h"
 #include "../util/System.hpp"

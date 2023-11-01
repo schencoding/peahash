@@ -10,8 +10,12 @@ rm build/CMakeCache.txt
 rm /mnt/mypmem1/liuzhuoxuan/pmem_pea.data
 rm /mnt/mypmem1/liuzhuoxuan/pmem_dash-ex.data
 
+# prepare
+cd ../../
+make clean
+
 # compile
-cmake -DCMAKE_BUILD_TYPE=Release -DUSE_PMEM=ON -S . -B build
+cmake -DCMAKE_BUILD_TYPE=Release -S ./pea_pmem/duplicate -B build
 cd build && make -j
 
 # execute
