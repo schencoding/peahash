@@ -1,5 +1,21 @@
-# PeaHash: Persistent Extendible Adaptive Hash
+Here I add [Dash's README](https://github.com/baotonglu/dash/blob/master/) for the usage of their allocator.
 
+# Dash: Scalable Hashing on Persistent Memory
+
+Persistent memory friendly hashing index.
+
+More details are described in our [VLDB paper](http://www.vldb.org/pvldb/vol13/p1147-lu.pdf) and [SIGMOD Highlight](https://sigmodrecord.org/?smd_process_download=1&download_id=7286) below. If you use our work, please cite:
+
+````
+Baotong Lu, Xiangpeng Hao, Tianzheng Wang, Eric Lo:
+Dash: Scalable Hashing on Persistent Memory. 
+PVLDB 13(8): 1147-1161 (2020)
+````
+````
+Baotong Lu, Xiangpeng Hao, Tianzheng Wang, Eric Lo:
+Scaling Dynamic Hash Tables on Real Persistent Memory. 
+SIGMOD Record 2021, Volume 50, Issue 1.
+````
 
 ## What's included
 
@@ -23,8 +39,8 @@ The external dependencies are our [customized PMDK](https://github.com/Xiangpeng
 ### Compiling
 Assuming to compile under a `build` directory:
 ```bash
-git clone https://github.com/DrWereviruswolf/dash_opt.git
-cd pehash
+git clone https://github.com/baotonglu/dash.git
+cd dash
 mkdir build && cd build
 cmake -DCMAKE_BUILD_TYPE=Release -DUSE_PMEM=ON .. 
 make -j
