@@ -1,8 +1,6 @@
+// Copyright (c) 2021-2023 Institute of Computing Technology, Chinese Academy of Sciences
+// Pea Hash is licensed under Mulan PSL v2.
 /**
- * @file    platform.h
- * @version 0.1
- *
- * @section DESCRIPTION
  *
  * This file allocate space in persistent memory to init the hash table.
  *
