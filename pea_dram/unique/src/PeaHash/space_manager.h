@@ -60,6 +60,7 @@ struct SpaceManager {
 
   // DRAM variable
   uint32_t bitmap_len;
+  size_t chunk_cap;
   static SpaceManager *instance_;
   chunkMeta *valueMeta[degreeMax + 1];
 
@@ -122,9 +123,9 @@ struct SpaceManager {
       fprintf(stderr, "pmem_map_file fails: 1\n");
       exit(1);
     }
-
+    std::cout << "pool size = " << pool_size << std::endl;
     // initialize DRAM fields
-    size_t chunk_cap = pool_size / chunk_size;
+    chunk_cap = pool_size / chunk_size;
     bitmap_len = chunk_cap / 32UL;
     uint32_t stash_chunk_cap = chunk_cap / bucketNumPChunk + 1;
     chunk_bitmap = new uint32_t[bitmap_len];
@@ -248,6 +249,9 @@ struct SpaceManager {
 
     uint32_t new_FECid = (scan_bitmap - chunk_bitmap) * 32 + index_32;
     __atomic_store_n(&FECid, new_FECid + 1, __ATOMIC_RELEASE);
+    if (new_FECid >= chunk_cap) {
+      std::cout << "[Error] The memory pool size is too small!" << std::endl;
+    }    
     return new_FECid;
   }
 
@@ -280,6 +284,10 @@ struct SpaceManager {
       }
       for (int i = 0; i < to_alloc_cnt; ++i) {
         chunk_ids[cnt + i] += (scan_bitmap - chunk_bitmap) * 32;
+        if (chunk_ids[cnt + i] >= chunk_cap) {
+          std::cout << "[Error] The memory pool size is too small!" << std::endl;
+          std::cout << chunk_ids[cnt + i] << std::endl;
+        }
       }
       cnt += to_alloc_cnt;
       __atomic_store_n(&FECid, chunk_ids[cnt - 1] + 1, __ATOMIC_RELEASE);
