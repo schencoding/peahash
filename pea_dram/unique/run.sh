@@ -10,11 +10,6 @@ op_type=(full mixed)
 # prepare
 rm build/test_pmem
 rm build/CMakeCache.txt
-rm /mnt/mypmem1/liuzhuoxuan/pmem_pea.data
-rm /mnt/mypmem1/liuzhuoxuan/pmem_dash-16.data
-rm /mnt/mypmem1/liuzhuoxuan/pmem_dash-512.data
-rm /mnt/mypmem1/liuzhuoxuan/pmem_level.data
-rm /mnt/mypmem1/liuzhuoxuan/pmem_cceh.data
 
 # compile
 cmake -DCMAKE_BUILD_TYPE=Release -S . -B build
@@ -35,7 +30,7 @@ do
             do
                 echo "No.$a ${op_type[$j]} ${index_type[$k]} ${thread_num[$i]}threads test begin"
                 # run
-                timeout 1h numactl --cpunodebind=1 --membind=1 ./test_pmem \
+                timeout 1h ./test_pmem \
                 -index ${index_type[$k]} \
                 -op ${op_type[$j]} \
                 -t ${thread_num[$i]} \
