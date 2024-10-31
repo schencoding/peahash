@@ -24,5 +24,5 @@ add_executable(test_pmem test/test_pmem.cpp)
 target_include_directories(test_pmem PRIVATE util)
 target_link_libraries(test_pmem PRIVATE ${libs_to_link})
 
-
+# add_definitions(-DPEA_ONLY)
 # add_definitions(-DAVX512F)

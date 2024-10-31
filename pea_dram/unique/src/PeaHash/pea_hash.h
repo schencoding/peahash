@@ -3,10 +3,11 @@
 
 #pragma once
 
-#include <hash.h>
-#include <pair.h>
 #include <pref.h>
-#include <utils.h>
+#include <vector>
+#include <bits/stdc++.h>
+#include "../Hash.h"
+#include "../util/hash.h"
 
 #include "space_manager.h"
 

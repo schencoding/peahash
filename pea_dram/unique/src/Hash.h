@@ -19,8 +19,12 @@ class Hash {
  public:
   Hash(void) = default;
   ~Hash(void) = default;
-  virtual int Insert(T, Value_t) = 0;
-  virtual int Insert(T, Value_t, bool) = 0;
+  virtual int Insert(T, Value_t) {
+    return -1;
+  }
+  virtual int Insert(T, Value_t, bool) {
+    return -1;
+  }
  
   virtual void bootRestore(){
 
@@ -28,13 +32,25 @@ class Hash {
   virtual void reportRestore(){
 
   };
-  virtual bool Delete(T) = 0;
-  virtual bool Delete(T, bool) = 0;
-  virtual Value_t Get(T) = 0;
-  virtual Value_t Get(T key, bool is_in_epoch) = 0;
-  virtual int Get(T key, Value_t *ret_val, size_t *number) = 0;
-  virtual void Recovery() = 0;
-  virtual uint64_t getNumber() = 0;
+  virtual bool Delete(T) {
+    return false;
+  }
+  virtual bool Delete(T, bool) {
+    return false;
+  }
+  virtual Value_t Get(T) {
+    return NONE;
+  }
+  virtual Value_t Get(T key, bool is_in_epoch) {
+    return NONE;
+  }
+  virtual int Get(T key, Value_t *ret_val, size_t *number) {
+    return 0;
+  }
+  virtual void Recovery() {}
+  virtual uint64_t getNumber() {
+    return 0;
+  }
 };
 
 #endif  // _HASH_INTERFACE_H_

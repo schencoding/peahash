@@ -19,14 +19,15 @@
 #include <mutex>
 #include <thread>
 
+#ifndef PEA_ONLY
 #include "../src/CCEH/CCEH_baseline.h"
 #include "../src/Dash-16/ex_finger.h"
 #include "../src/Dash-512/ex_finger.h"
 #include "../src/Level/level_base.h"
+#include "../src/CLHT/clht_lb_res.h"
+#endif
 #include "../src/PeaHash/pea_hash.h"
 #include "../src/PeaHash/space_manager.h"
-#include "../src/CLHT/clht_lb_res.h"
-#include "../util/System.hpp"
 #include "../util/key_generator.hpp"
 #include "../util/uniform.hpp"
 
@@ -41,7 +42,7 @@ DEFINE_uint64(i, 256, "the initial number of segments in pea/extendible hashing"
 DEFINE_uint64(t, 1, "the number of concurrent threads");
 DEFINE_uint64(n, 1000000, "the number of pre-insertion load");
 DEFINE_uint64(loadType, 0, "type of pre-load integers: random (0) - range (1)");
-DEFINE_uint64(p, 269000000,
+DEFINE_uint64(p, 69000000,
               "the number of operations(insert/search/deletion) to execute");
 DEFINE_string(
         op, "full",
@@ -104,6 +105,7 @@ Hash<T> *InitializeIndex(int seg_num) {
     Hash<T> *eh;
     bool file_exist = false;
     gettimeofday(&tv1, NULL);
+#ifndef PEA_ONLY
     if (index_type == "dash-16") {
         std::cout << "Dash-16" << std::endl;
 #ifdef PREALLOC
@@ -125,17 +127,19 @@ Hash<T> *InitializeIndex(int seg_num) {
         int level_size = 14;
         level::initialize_level(reinterpret_cast<level::LevelHashing<T> *>(eh),
                                 &level_size);
-    } else if (index_type == "pea") {
+    } else if (index_type == "clht") {
+        std::cout << "CLHT" << std::endl;
+        eh = new clht_lb::CLHT<T>(81920);
+    } else 
+#endif
+    if (index_type == "pea") {
         std::cout << "Pea" << std::endl;
         std::string index_pool_name = pool_name + "pmem_pea.data";
         if (FileExists(index_pool_name.c_str())) file_exist = true;
         SpaceManager::Initialize(index_pool_name.c_str(), pool_size, thread_num);
         size_t pea_size = 8;
         eh = new pea::PeaHashing<T>(pea_size, thread_num);
-    } else if (index_type == "clht") {
-        std::cout << "CLHT" << std::endl;
-        eh = new clht_lb::CLHT<T>(81920);
-    }
+    } 
     if (operation == "recovery") {
         gettimeofday(&tv3, NULL);  // test end
         eh->Recovery();
@@ -196,21 +200,17 @@ void generate_16B(void *memory_region, uint64_t generate_num, int length,
 
 template<class T>
 void Load(int kv_num, Hash<T> *index, int length, void *workload) {
-    // std::cout << "Start load warm-up workload" << std::endl;
+    std::cout << "Start load warm-up workload" << std::endl;
     if (kv_num == 0) return;
     std::string fixed("fixed");
     T *_worklod = reinterpret_cast<T *>(workload);
     T key;
     if constexpr (!std::is_pointer_v<T>) {
         for (uint64_t i = 0; i < kv_num; ++i) {
-//            LOG(i);
-//            if (i == 226056 or i == 225705){
-//                LOG(i);
-//            }
             index->Insert(_worklod[i], DEFAULT, true);
         }
     }
-    // std::cout << "Finish loading " << kv_num << " keys" << std::endl;
+    std::cout << "Finish loading " << kv_num << " keys" << std::endl;
 }
 
 inline void spin_wait() {
