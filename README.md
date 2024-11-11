@@ -28,7 +28,7 @@ Code for SIGMOD'23 [Pea Hash Paper](https://dl.acm.org/doi/10.1145/3588962)
 sudo apt install libgflags-dev
 ```
 
-4. (Optional) If you want to deploy pea_pmem, please install PMDK. Please refer to the Dependencies of https://github.com/pmem/pmdk if incurring error.
+4. (Optional) If you want to deploy pea_pmem, please install PMDK. Please refer to the Dependencies of https://github.com/pmem/pmdk if problems occur.
 
 ## Building
 CMakeLists, test/test_pmem*.cpp, compile.sh
